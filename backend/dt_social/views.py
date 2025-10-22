@@ -3,16 +3,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from itertools import count
 
-# --- in-memory stores for tests ---
-_users = {}
-_posts = {}
-_challenges = {}
-_actions = {}
-
-_user_ids = count(1)
-_post_ids = count(1)
-_ch_ids = count(1)
-_ai_ids = count(1)
+# in-memory stores
+_users, _posts, _challenges, _actions = {}, {}, {}, {}
+_user_ids = count(1); _post_ids = count(1); _ch_ids = count(1); _ai_ids = count(1)
 
 def _json(request):
     try:
@@ -23,7 +16,7 @@ def _json(request):
 def health(request):
     if request.method != "GET":
         return HttpResponseNotAllowed(["GET"])
-    return JsonResponse({"ok": True})
+    return JsonResponse({"status": "ok"})
 
 @csrf_exempt
 def users(request):
@@ -43,11 +36,9 @@ def posts(request):
         return HttpResponseNotAllowed(["POST"])
     data = _json(request)
     text = (data.get("text") or "").strip()
-    author_id = data.get("author_id")
-    if not text or not author_id:
-        return JsonResponse({"error": "text and author_id required"}, status=400)
-    if author_id not in _users:
-        return JsonResponse({"error": "author not found"}, status=404)
+    author_id = data.get("author_id")  # اختیاری
+    if not text:
+        return JsonResponse({"error": "text required"}, status=400)
     pid = next(_post_ids)
     _posts[pid] = {"id": pid, "text": text, "author_id": author_id, "likes": 0}
     return JsonResponse(_posts[pid], status=201)
@@ -64,8 +55,9 @@ def post_like(request, post_id: int):
 def feed(request):
     if request.method != "GET":
         return HttpResponseNotAllowed(["GET"])
+    # خروجی باید لیست باشد نه آبجکت
     items = sorted(_posts.values(), key=lambda x: x["id"], reverse=True)[:50]
-    return JsonResponse({"items": items})
+    return JsonResponse(items, safe=False)
 
 @csrf_exempt
 def challenges(request):
