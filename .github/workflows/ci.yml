@@ -1,9 +1,7 @@
 ﻿name: CI
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  push: { branches: [ main ] }
+  pull_request: { branches: [ main ] }
 jobs:
   guardrails:
     runs-on: ubuntu-latest
@@ -22,6 +20,6 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install -U pip
-          pip install -r backend/requirements.txt || echo "no backend/requirements.txt"
+          pip install -r backend/requirements.txt
       - name: Run tests
-        run: pytest || echo "no tests"
+        run: pytest -c backend/pytest.ini
