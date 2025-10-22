@@ -1,0 +1,9 @@
+GET  /health
+GET  /action-items
+POST /action-items
+POST /action-items/{id}/complete
+GET  /progress/timeline
+GET  /progress/xp
+GET  /posts
+POST /posts
+POST /posts/{id}/like
