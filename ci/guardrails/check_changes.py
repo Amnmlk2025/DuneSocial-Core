@@ -2,13 +2,13 @@
 import os, json, sys, subprocess, pathlib
 
 ALLOWED_LARGE_FILES = {".mp4", ".mov", ".zip"}
-MAX_ADDED_LINES = 2000               # افزایش موقتی برای PR مستندات
+MAX_ADDED_LINES = 400
 FRONTEND_LABEL_REQUIRED = "frontend-allowed"
 
 def run(*cmd):
     return subprocess.check_output(list(cmd), text=True).strip()
 
-# labels از رویداد PR
+# خواندن لیبل‌های PR از رویداد
 labels = set()
 ev = os.environ.get("GITHUB_EVENT_PATH")
 if ev and os.path.exists(ev):
@@ -16,27 +16,22 @@ if ev and os.path.exists(ev):
         d = json.load(f)
         labels = {l.get("name","") for l in d.get("pull_request", {}).get("labels", [])}
 
-# refs
-base_ref_name = os.environ.get("GITHUB_BASE_REF") or "main"
-base_remote = f"origin/{base_ref_name}"
-head = os.environ.get("GITHUB_SHA") or "HEAD"
-
-# اطمینان از داشتن ریموتِ شاخهٔ مبنا
+# مطمئن شو origin/main حاضر است
 subprocess.call([
-    "git","fetch","--no-tags","--prune","--depth","2","origin",
-    f"+refs/heads/{base_ref_name}:refs/remotes/{base_remote}"
+    "git","fetch","--no-tags","--prune","--depth","2",
+    "origin","+refs/heads/main:refs/remotes/origin/main"
 ])
 
-# محدودهٔ دیف
-mb = run("git","merge-base", head, base_remote)
+base_ref = os.environ.get("GITHUB_BASE_REF") or "origin/main"
+head = os.environ.get("GITHUB_SHA") or "HEAD"
+
+# محدوده‌ی دقیق تغییرات نسبت به merge-base
+mb = run("git","merge-base", head, base_ref)
 diff = run("git","diff", f"{mb}..{head}", "--name-status")
 files = [ln.split("\t")[-1] for ln in diff.splitlines() if ln]
 shortstat = run("git","diff","--shortstat", f"{mb}..{head}")
 
-# اگر همه تغییرها فقط در docs/ است، محدودیت خطوط را نادیده بگیر
-only_docs = bool(files) and all(p.startswith("docs/") for p in files)
-
-# خطوط افزوده
+# تعداد خطوط افزوده
 added = 0
 for part in shortstat.split(","):
     p = part.strip()
@@ -46,18 +41,21 @@ for part in shortstat.split(","):
         except:
             pass
 
-if not only_docs and added > MAX_ADDED_LINES:
-    print(f"FATAL: Too many added lines: {added} > {MAX_ADDED_LINES}"); sys.exit(2)
+if added > MAX_ADDED_LINES:
+    print(f"FATAL: Too many added lines: {added} > {MAX_ADDED_LINES}")
+    sys.exit(2)
 
-# نیازمندی لیبل برای frontend/
+# تغییرات frontend بدون لیبل مجاز نباشد
 if any(p.startswith("frontend/") for p in files) and FRONTEND_LABEL_REQUIRED not in labels:
-    print("FATAL: Frontend changes detected without required label 'frontend-allowed'."); sys.exit(3)
+    print("FATAL: Frontend changes detected without required label 'frontend-allowed'.")
+    sys.exit(3)
 
 # فایل‌های بزرگ غیرمجاز
 for p in files:
     fp = pathlib.Path(p)
     if fp.exists() and fp.is_file():
         if fp.stat().st_size > 100*1024*1024 and fp.suffix.lower() not in ALLOWED_LARGE_FILES:
-            print(f"FATAL: Large file >100MB detected: {p}"); sys.exit(4)
+            print(f"FATAL: Large file >100MB detected: {p}")
+            sys.exit(4)
 
 print("Guardrails passed.")
