@@ -1,3 +1,7 @@
-﻿from django.urls import path
+﻿from django.urls import path, include
 from .views import health
-urlpatterns = [path("health", health)]
+
+urlpatterns = [
+    path("health", health),
+    path("", include("dt_growth.urls")),
+]
