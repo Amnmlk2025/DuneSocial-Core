@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os, json, sys, subprocess, pathlib
 ALLOWED_LARGE_FILES = {".mp4", ".mov", ".zip"}
 MAX_ADDED_LINES = 400
@@ -17,9 +17,18 @@ head = os.environ.get("GITHUB_SHA") or "HEAD"
 try: subprocess.check_call(["git","fetch","--depth","2","origin","main"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 except Exception: pass
 
-diff = run(["git","diff",f"{base}...{head}","--name-status"])
-files = [line.split("\\t")[-1] for line in diff.splitlines() if line]
-shortstat = run(["git","diff","--shortstat",f"{base}...{head}"])
+import subprocess
+def safe(cmd):
+    try: return subprocess.check_output(cmd, text=True).strip()
+    except subprocess.CalledProcessError: return ""
+# normalize base to remote ref and ensure it exists
+if base == "main": base = "origin/main"
+subprocess.call(["git","fetch","--no-tags","origin","+refs/heads/main:refs/remotes/origin/main"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+mb = safe(["git","merge-base","HEAD","origin/main"]) or "HEAD"
+diff = run(["git","diff",f"{mb}..{head}","--name-status"])
+files = [line.split("\t")[-1] for line in diff.splitlines() if line]
+shortstat = run(["git","diff","--shortstat",f"{mb}..{head}"])
 
 added = 0
 for part in shortstat.split(","):
@@ -42,3 +51,4 @@ for p in files:
             print(f"FATAL: Large file >100MB detected: {p}"); sys.exit(4)
 
 print("Guardrails passed.")
+
