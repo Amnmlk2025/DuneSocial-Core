@@ -1,9 +1,8 @@
+from django.contrib import admin
 from django.urls import path, include
-from .views import health
 
 urlpatterns = [
-    path("health", health),
-    path("", include("dt_growth.urls")),
+    path("admin/", admin.site.urls),
+    # بدون پیشوند؛ تا /users ، /posts ، /feed کار کنند
     path("", include("dt_social.urls")),
-    path("", include("dt_users.urls")),
 ]
