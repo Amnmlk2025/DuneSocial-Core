@@ -1,6 +1,21 @@
 from django.urls import path
-from .views import posts, like
+from . import views
+
 urlpatterns = [
-    path("posts", posts),
-    path("posts/<int:pk>/like", like),
+    # health
+    path("health", views.health),
+
+    # users
+    path("users", views.users),
+
+    # posts
+    path("posts", views.posts),
+    path("posts/<int:post_id>/like", views.post_like),
+
+    # feed
+    path("feed", views.feed),
+
+    # growth
+    path("challenges", views.challenges),
+    path("action-items", views.action_items),
 ]
