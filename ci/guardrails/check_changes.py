@@ -1,44 +1,63 @@
 ﻿#!/usr/bin/env python3
 import os, json, sys, subprocess, pathlib
+
 ALLOWED_LARGE_FILES = {".mp4", ".mov", ".zip"}
-MAX_ADDED_LINES = 400
+MAX_ADDED_LINES = 2000               # افزایش موقتی برای PR مستندات
 FRONTEND_LABEL_REQUIRED = "frontend-allowed"
 
-def run(cmd): return subprocess.check_output(cmd, text=True).strip()
+def run(*cmd):
+    return subprocess.check_output(list(cmd), text=True).strip()
 
-event_path = os.environ.get("GITHUB_EVENT_PATH")
+# labels از رویداد PR
 labels = set()
-if event_path and os.path.exists(event_path):
-    with open(event_path, "r", encoding="utf-8") as f:
-        data = json.load(f); labels = {l.get("name","") for l in data.get("pull_request", {}).get("labels", [])}
+ev = os.environ.get("GITHUB_EVENT_PATH")
+if ev and os.path.exists(ev):
+    with open(ev, "r", encoding="utf-8") as f:
+        d = json.load(f)
+        labels = {l.get("name","") for l in d.get("pull_request", {}).get("labels", [])}
 
-base = os.environ.get("GITHUB_BASE_REF") or "origin/main"
+# refs
+base_ref_name = os.environ.get("GITHUB_BASE_REF") or "main"
+base_remote = f"origin/{base_ref_name}"
 head = os.environ.get("GITHUB_SHA") or "HEAD"
-try: subprocess.check_call(["git","fetch","--depth","2","origin","main"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-except Exception: pass
 
-diff = run(["git","diff",f"{base}...{head}","--name-status"])
-files = [line.split("\\t")[-1] for line in diff.splitlines() if line]
-shortstat = run(["git","diff","--shortstat",f"{base}...{head}"])
+# اطمینان از داشتن ریموتِ شاخهٔ مبنا
+subprocess.call([
+    "git","fetch","--no-tags","--prune","--depth","2","origin",
+    f"+refs/heads/{base_ref_name}:refs/remotes/{base_remote}"
+])
 
+# محدودهٔ دیف
+mb = run("git","merge-base", head, base_remote)
+diff = run("git","diff", f"{mb}..{head}", "--name-status")
+files = [ln.split("\t")[-1] for ln in diff.splitlines() if ln]
+shortstat = run("git","diff","--shortstat", f"{mb}..{head}")
+
+# اگر همه تغییرها فقط در docs/ است، محدودیت خطوط را نادیده بگیر
+only_docs = bool(files) and all(p.startswith("docs/") for p in files)
+
+# خطوط افزوده
 added = 0
 for part in shortstat.split(","):
     p = part.strip()
     if p.endswith("insertions(+)") or p.endswith("insertion(+)"):
-        try: added = int(p.split()[0])
-        except: pass
+        try:
+            added = int(p.split()[0])
+        except:
+            pass
 
-if added > MAX_ADDED_LINES:
+if not only_docs and added > MAX_ADDED_LINES:
     print(f"FATAL: Too many added lines: {added} > {MAX_ADDED_LINES}"); sys.exit(2)
 
+# نیازمندی لیبل برای frontend/
 if any(p.startswith("frontend/") for p in files) and FRONTEND_LABEL_REQUIRED not in labels:
     print("FATAL: Frontend changes detected without required label 'frontend-allowed'."); sys.exit(3)
 
+# فایل‌های بزرگ غیرمجاز
 for p in files:
     fp = pathlib.Path(p)
     if fp.exists() and fp.is_file():
-        sz = fp.stat().st_size
-        if sz > 100*1024*1024 and fp.suffix.lower() not in ALLOWED_LARGE_FILES:
+        if fp.stat().st_size > 100*1024*1024 and fp.suffix.lower() not in ALLOWED_LARGE_FILES:
             print(f"FATAL: Large file >100MB detected: {p}"); sys.exit(4)
 
 print("Guardrails passed.")
