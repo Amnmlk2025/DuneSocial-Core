@@ -1,8 +1,9 @@
-SECRET_KEY = "dev-only"
+﻿SECRET_KEY = "dev-only"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
-INSTALLED_APPS = [
+INSTALLED_APPS = 
+    'dt_social',
     'dt_users',
     'dt_growth',
     "django.contrib.contenttypes",
@@ -25,3 +26,4 @@ REST_FRAMEWORK = {
 MIGRATION_MODULES = {'dt_growth': None}
 
 MIGRATION_MODULES.update({'dt_users': None})
+
