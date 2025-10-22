@@ -3,8 +3,10 @@ from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponseNotFou
 from django.views.decorators.csrf import csrf_exempt
 from .models import User, Post, Challenge, ActionItem
 
+
 def health(request):
     return JsonResponse({"status": "ok"})
+
 
 def _parse_json(request):
     try:
@@ -12,19 +14,22 @@ def _parse_json(request):
     except Exception:
         return {}
 
+
 @csrf_exempt
 def users(request):
     if request.method == "POST":
         data = _parse_json(request)
-        u = User.objects.create(username=data.get("username", "").strip() or "anon")
+        u = User.objects.create(username=(data.get("username") or "").strip() or "anon")
         return JsonResponse({"id": u.id, "username": u.username}, status=201)
     if request.method == "GET":
         out = [{"id": u.id, "username": u.username} for u in User.objects.all().order_by("id")]
         return JsonResponse(out, safe=False)
     return HttpResponseNotAllowed(["GET", "POST"])
 
+
 def _post_to_dict(p: Post):
     return {"id": p.id, "text": p.text, "likes": p.likes, "author_id": p.author_id}
+
 
 @csrf_exempt
 def posts(request):
@@ -40,6 +45,7 @@ def posts(request):
         return JsonResponse(items, safe=False)
     return HttpResponseNotAllowed(["GET", "POST"])
 
+
 @csrf_exempt
 def post_like(request, post_id: int):
     if request.method != "POST":
@@ -52,6 +58,7 @@ def post_like(request, post_id: int):
     p.save(update_fields=["likes"])
     return JsonResponse({"likes": p.likes})
 
+
 @csrf_exempt
 def feed(request):
     if request.method != "GET":
@@ -63,6 +70,7 @@ def feed(request):
     items = [_post_to_dict(p) for p in qs.order_by("-id")]
     return JsonResponse(items, safe=False)
 
+
 @csrf_exempt
 def challenges(request):
     if request.method == "POST":
@@ -73,9 +81,11 @@ def challenges(request):
         )
         return JsonResponse({"id": ch.id, "title": ch.title, "duration_days": ch.duration_days}, status=201)
     if request.method == "GET":
-        items = [{"id": ch.id, "title": ch.title, "duration_days": ch.duration_days} for ch in Challenge.objects.all().order_by("id")]
+        items = [{"id": ch.id, "title": ch.title, "duration_days": ch.duration_days}
+                 for ch in Challenge.objects.all().order_by("id")]
         return JsonResponse(items, safe=False)
     return HttpResponseNotAllowed(["GET", "POST"])
+
 
 @csrf_exempt
 def action_items(request):
@@ -84,6 +94,7 @@ def action_items(request):
         ai = ActionItem.objects.create(title=(data.get("title") or "").strip(), done=False)
         return JsonResponse({"id": ai.id, "title": ai.title, "done": ai.done}, status=201)
     if request.method == "GET":
-        items = [{"id": ai.id, "title": ai.title, "done": ai.done} for ai in ActionItem.objects.all().order_by("id")]
+        items = [{"id": ai.id, "title": ai.title, "done": ai.done}
+                 for ai in ActionItem.objects.all().order_by("id")]
         return JsonResponse(items, safe=False)
     return HttpResponseNotAllowed(["GET", "POST"])
