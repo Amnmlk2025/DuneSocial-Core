@@ -22,4 +22,6 @@ jobs:
           python -m pip install -U pip
           pip install -r backend/requirements.txt
       - name: Run tests
+        env:
+          PYTHONPATH: backend
         run: pytest -c backend/pytest.ini
