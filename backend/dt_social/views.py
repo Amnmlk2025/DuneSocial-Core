@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import User, Post, Challenge, ActionItem
 
 @csrf_exempt
-def health(request):
+def health(_):
     return JsonResponse({"status": "ok"})
 
 @csrf_exempt
@@ -21,10 +21,10 @@ def posts(request):
         data = json.loads(request.body or "{}")
         text = data.get("text", "")
         author = None
-        author_id = data.get("author_id")
-        if author_id:
+        aid = data.get("author_id")
+        if aid:
             try:
-                author = User.objects.get(id=author_id)
+                author = User.objects.get(id=aid)
             except User.DoesNotExist:
                 author = None
         if author is None:
@@ -71,8 +71,23 @@ def challenges(request):
 
 @csrf_exempt
 def action_items(request):
+    if request.method == "POST":
+        data = json.loads(request.body or "{}")
+        a = ActionItem.objects.create(title=data.get("title", ""))
+        return JsonResponse({"id": a.id, "title": a.title, "completed": a.completed}, status=201)
+    if request.method == "GET":
+        out = [{"id": a.id, "title": a.title, "completed": a.completed} for a in ActionItem.objects.order_by("id")]
+        return JsonResponse(out, safe=False)
+    return HttpResponseNotAllowed(["GET", "POST"])
+
+@csrf_exempt
+def action_done(request, item_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
-    data = json.loads(request.body or "{}")
-    a = ActionItem.objects.create(title=data.get("title", ""))
-    return JsonResponse({"id": a.id, "title": a.title}, status=201)
+    try:
+        a = ActionItem.objects.get(id=item_id)
+    except ActionItem.DoesNotExist:
+        return HttpResponseNotFound()
+    a.completed = True
+    a.save(update_fields=["completed"])
+    return JsonResponse({"id": a.id, "title": a.title, "completed": a.completed})
