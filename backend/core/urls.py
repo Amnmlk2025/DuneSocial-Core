@@ -1,4 +1,4 @@
 ﻿from django.urls import path, include
 urlpatterns = [
-    path("", include("growth.urls")),
+    path("", include("dt_growth.urls")),
 ]
