@@ -8,7 +8,7 @@ FRONTEND_LABEL_REQUIRED = "frontend-allowed"
 def run(*cmd):
     return subprocess.check_output(list(cmd), text=True).strip()
 
-# خواندن لیبل‌های PR از رویداد
+# برچسب‌های PR از رویداد
 labels = set()
 ev = os.environ.get("GITHUB_EVENT_PATH")
 if ev and os.path.exists(ev):
@@ -16,22 +16,31 @@ if ev and os.path.exists(ev):
         d = json.load(f)
         labels = {l.get("name","") for l in d.get("pull_request", {}).get("labels", [])}
 
-# مطمئن شو origin/main حاضر است
+# اطمینان از وجود main محلی و ریموت
 subprocess.call([
-    "git","fetch","--no-tags","--prune","--depth","2",
-    "origin","+refs/heads/main:refs/remotes/origin/main"
+    "git","fetch","--no-tags","--prune","--depth","50","origin",
+    "+refs/heads/main:refs/heads/main",
+    "+refs/heads/main:refs/remotes/origin/main"
 ])
 
 base_ref = os.environ.get("GITHUB_BASE_REF") or "origin/main"
+if base_ref == "main":
+    base_ref = "origin/main"
+
 head = os.environ.get("GITHUB_SHA") or "HEAD"
 
-# محدوده‌ی دقیق تغییرات نسبت به merge-base
-mb = run("git","merge-base", head, base_ref)
+# محاسبه merge-base ایمن
+try:
+    mb = run("git","merge-base", head, base_ref)
+except subprocess.CalledProcessError:
+    mb = run("git","rev-parse", base_ref)
+
+# Diff بین merge-base و HEAD
 diff = run("git","diff", f"{mb}..{head}", "--name-status")
 files = [ln.split("\t")[-1] for ln in diff.splitlines() if ln]
 shortstat = run("git","diff","--shortstat", f"{mb}..{head}")
 
-# تعداد خطوط افزوده
+# خطوط افزوده
 added = 0
 for part in shortstat.split(","):
     p = part.strip()
@@ -45,12 +54,12 @@ if added > MAX_ADDED_LINES:
     print(f"FATAL: Too many added lines: {added} > {MAX_ADDED_LINES}")
     sys.exit(2)
 
-# تغییرات frontend بدون لیبل مجاز نباشد
+# نیاز به لیبل برای تغییرات frontend/
 if any(p.startswith("frontend/") for p in files) and FRONTEND_LABEL_REQUIRED not in labels:
     print("FATAL: Frontend changes detected without required label 'frontend-allowed'.")
     sys.exit(3)
 
-# فایل‌های بزرگ غیرمجاز
+# ممنوعیت فایل‌های خیلی بزرگ غیرمجاز
 for p in files:
     fp = pathlib.Path(p)
     if fp.exists() and fp.is_file():
