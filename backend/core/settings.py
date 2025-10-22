@@ -1,8 +1,9 @@
-﻿SECRET_KEY = "dev-only"
+SECRET_KEY = "dev-only"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
+    'dt_social',
     'dt_growth',
     "django.contrib.contenttypes",
     "django.contrib.auth",
@@ -22,3 +23,5 @@ REST_FRAMEWORK = {
 
 # speed up tests: disable migrations for dt_growth
 MIGRATION_MODULES = {'dt_growth': None}
+
+MIGRATION_MODULES.update({'dt_social': None})
