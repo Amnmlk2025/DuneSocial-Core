@@ -1,17 +1,23 @@
 ﻿name: CI
+
 on:
-  push: { branches: [ main ] }
-  pull_request: { branches: [ main ] }
+  pull_request:
+
 jobs:
   guardrails:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 2 }
-      - name: Run guardrails
+        with:
+          fetch-depth: 2
+      - name: Fetch base branch
+        run: |
+          git fetch --no-tags --prune --depth=2 origin +refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
+      - name: Guardrails
         run: python3 ci/guardrails/check_changes.py
+
   backend-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
