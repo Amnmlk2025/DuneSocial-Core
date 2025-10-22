@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 import os, json, sys, subprocess, pathlib
 
 ALLOWED_LARGE_FILES = {".mp4", ".mov", ".zip"}
@@ -29,26 +29,11 @@ if base_ref == "main":
 
 head = os.environ.get("GITHUB_SHA") or "HEAD"
 
-<<<<<<< HEAD
-import subprocess
-def safe(cmd):
-    try: return subprocess.check_output(cmd, text=True).strip()
-    except subprocess.CalledProcessError: return ""
-# normalize base to remote ref and ensure it exists
-if base == "main": base = "origin/main"
-subprocess.call(["git","fetch","--no-tags","origin","+refs/heads/main:refs/remotes/origin/main"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-mb = safe(["git","merge-base","HEAD","origin/main"]) or "HEAD"
-diff = run(["git","diff",f"{mb}..{head}","--name-status"])
-files = [line.split("\t")[-1] for line in diff.splitlines() if line]
-shortstat = run(["git","diff","--shortstat",f"{mb}..{head}"])
-=======
 # محاسبه merge-base ایمن
 try:
     mb = run("git","merge-base", head, base_ref)
 except subprocess.CalledProcessError:
     mb = run("git","rev-parse", base_ref)
->>>>>>> origin/main
 
 # Diff بین merge-base و HEAD
 diff = run("git","diff", f"{mb}..{head}", "--name-status")
@@ -83,4 +68,3 @@ for p in files:
             sys.exit(4)
 
 print("Guardrails passed.")
-
