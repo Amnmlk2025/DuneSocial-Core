@@ -1,7 +1,15 @@
 from django.urls import path
-from .views import posts, like, feed
+from . import views
+
 urlpatterns = [
-    path("posts", posts),
-    path("posts/<int:pk>/like", like),
-    path("feed", feed),
+    path("health", views.health),
+    path("users", views.users),
+    path("posts", views.posts),
+    path("posts/<int:pid>/like", views.like_post),
+    path("feed", views.feed),
+    path("challenges", views.challenges),
+    path("action-items", views.action_items),
+    path("action-items/<int:aid>/complete", views.action_done),
+    path("progress/xp", views.progress_xp),
+    path("progress/timeline", views.progress_timeline),
 ]
