@@ -36,12 +36,18 @@ def posts(request):
         author = User.objects.filter(id=author_id).first() if author_id else None
         if not text:
             return JsonResponse({"error": "text required"}, status=400)
+
+        # نویسندهٔ پیش‌فرض اگر author نداشتیم
+        if author is None:
+            author, _ = User.objects.get_or_create(username="system")
+
         p = Post.objects.create(text=text, author=author)
         return JsonResponse({"id": p.id, "text": p.text, "likes": p.likes or 0}, status=201)
     if request.method == "GET":
-        posts = [{"id": p.id, "text": p.text, "likes": p.likes or 0} for p in Post.objects.all().order_by("id")]
-        return JsonResponse(posts, safe=False, status=200)
+        lst = [{"id": p.id, "text": p.text, "likes": p.likes or 0} for p in Post.objects.all().order_by("id")]
+        return JsonResponse(lst, safe=False, status=200)
     return HttpResponseNotAllowed(["GET", "POST"])
+
 
 @csrf_exempt
 def like_post(request, pid: int):
