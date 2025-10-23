@@ -24,16 +24,13 @@ def users(request):
 def posts(request):
     if request.method == "POST":
         data = json.loads(request.body or "{}")
-        # author_id اختیاری است؛ اگر نبود یک کاربر ناشناس می‌سازیم تا تست‌ها ۲۰۱ بگیرند
         author_id = data.get("author_id")
-        author = None
         if author_id:
             author = User.objects.filter(id=author_id).first()
             if not author:
                 return JsonResponse({"error": "author not found"}, status=404)
         else:
             author = User.objects.create(username=f"anon_{uuid4().hex[:8]}")
-
         p = Post.objects.create(text=data.get("text", ""), author=author)
         return JsonResponse(
             {"id": p.id, "text": p.text, "author_id": p.author_id, "likes": p.likes},
@@ -81,7 +78,8 @@ def challenges(request):
             title=data.get("title", ""), duration_days=int(data.get("duration_days", 0))
         )
         return JsonResponse(
-            {"id": c.id, "title": c.title, "duration_days": c.duration_days}, status=201
+            {"id": c.id, "title": c.title, "duration_days": c.duration_days},
+            status=201,
         )
     if request.method == "GET":
         return JsonResponse(
@@ -99,7 +97,8 @@ def action_items(request):
         data = json.loads(request.body or "{}")
         a = ActionItem.objects.create(title=data.get("title", ""), completed=False)
         return JsonResponse(
-            {"id": a.id, "title": a.title, "completed": a.completed}, status=201
+            {"id": a.id, "title": a.title, "completed": a.completed},
+            status=201,
         )
     if request.method == "GET":
         return JsonResponse(
