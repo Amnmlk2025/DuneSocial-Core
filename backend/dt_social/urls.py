@@ -3,16 +3,13 @@ from . import views
 
 urlpatterns = [
     path("health", views.health),
-
     path("users", views.users),
-
     path("posts", views.posts),
     path("posts/<int:pid>/like", views.like_post),
-
     path("feed", views.feed),
-
     path("challenges", views.challenges),
-
     path("action-items", views.action_items),
     path("action-items/<int:aid>/complete", views.action_done),
+    path("progress/xp", views.progress_xp),
+    path("progress/timeline", views.progress_timeline),
 ]
