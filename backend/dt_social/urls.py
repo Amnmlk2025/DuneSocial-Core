@@ -1,18 +1,18 @@
 from django.urls import path
-from . import views as v
+from . import views
 
 urlpatterns = [
-    path("health", v.health),
+    path("health", views.health),
 
-    path("users", v.users),
+    path("users", views.users),
 
-    path("posts", v.posts),
-    path("posts/<int:post_id>/like", v.like_post),
+    path("posts", views.posts),
+    path("posts/<int:pid>/like", views.like_post),
 
-    path("feed", v.feed),
+    path("feed", views.feed),
 
-    path("challenges", v.challenges),
+    path("challenges", views.challenges),
 
-    path("action-items", v.action_items),                         # GET لیست، POST ایجاد
-    path("action-items/<int:item_id>/complete", v.action_done),   # POST تکمیل
+    path("action-items", views.action_items),
+    path("action-items/<int:aid>/complete", views.action_done),
 ]
